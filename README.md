@@ -59,24 +59,24 @@
 
 ### `search_listings`
 
-- **What it does:**
-- **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Finds listings matching a description, with optional size and inclusive maximum-price filters.
+- **Inputs:** `description` (str), `size` (str | None), `max_price` (float | None).
+- **Returns:** A list of listing dicts, best match first, each with `id`, `title`, `description`, `category`, `style_tags` (list), `size`, `condition`, `price` (float), `colors` (list), `brand` (str | None), and `platform`.
+- **When it has nothing:** An empty list (`[]`).
 
 ### `suggest_outfit`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Suggests one or two outfits using a listing and the user's wardrobe.
+- **Inputs:** `new_item` (dict with listing fields described above), `wardrobe` (dict with an `items` key containing a list of wardrobe items).
+- **Returns:** A non-empty string containing one or two outfit suggestions; with an empty wardrobe, it gives general styling advice for the listing.
+- **When it has nothing:** It still returns general styling advice when `wardrobe["items"]` is empty; it does not return an empty value.
 
 ### `create_fit_card`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Writes a short social caption about the listing and a suggested outfit.
+- **Inputs:** `outfit` (str), `new_item` (dict with listing fields described above).
+- **Returns:** A 2-4 sentence caption that mentions the item, its price, and its platform once each, with a specific vibe.
+- **When it has nothing:** If `outfit` is empty or whitespace-only, returns a descriptive message instead of raising an error.
 
 ---
 
@@ -93,7 +93,7 @@
      The grader checks your code against what you claim here, so the file and
      function have to be real. -->
 
-**Branch rule:**
+**Branch rule:** If `search_listings` returns an empty list, put a message in the session and stop. Otherwise, take the first result and go to `suggest_outfit`.
 
 **Where it lives:** `agent.py::run_agent`
 
