@@ -20,42 +20,18 @@
 
 ---
 
-<!-- ─────────────────────────────────────────────────────────────────────────
-     HOW TO USE THIS FILE
-
-     This is your submission. Fill each section in as you finish the milestone
-     it belongs to — don't leave it all to the end.
-
-     Unit 3 asks for the first five sections. Unit 4 adds the five below them.
-     Leave the unit 4 sections alone until then; they're here so you know
-     what's coming.
-
-     Everything is pasted as TEXT. No screenshots, no images, no video links.
-     A typed block of output gets full credit; a picture of the same output
-     gets none.
-     ───────────────────────────────────────────────────────────────────────── -->
-
-<!-- ═══════════════════════ UNIT 3 — THE BUILD ═══════════════════════ -->
 
 ## What This Does
 
 <!-- Three or four sentences: what a user asks for, and what they get back. -->
 
+FitFindr is a thrift-shopping agent. A user types what they want in plain language, such as "vintage graphic tee under $30, size L", and the agent finds a matching secondhand listing. It then suggests outfits that pair the find with pieces from the user's own wardrobe and writes a short, shareable fit-card caption for it. If nothing matches, the agent stops and tells the user what to change, such as the keywords, price limit or size, instead of guessing.
 
 
 ---
 
 ## Tool Inventory
 
-<!-- Four lines per tool. This is worth 2 points and it's the single most
-     common place students lose them.
-
-     "Returns a list" earns NOTHING. The description has to say what is IN
-     the list.
-
-     The empty case isn't optional either — it's the thing your loop branches
-     on, and if you don't decide it here you'll discover it as a crash in
-     Milestone 5. -->
 
 ### `search_listings`
 
@@ -185,24 +161,18 @@ Nothing beats the lived-in look of these Vintage Levi's 501 Jeans — Medium Was
 
 ## How I Used AI
 
-<!-- Two specific moments. What you asked, what came back, what you changed.
 
-     "I used Claude to help me code" is not enough.
+**Moment 1 — `search_listings`**
 
-     "I gave Claude my search_listings spec. It returned None on no match
-     instead of an empty list, so I changed it" is the level we want. -->
+- *What I asked for:* I asked the AI to implement `search_listings` from my Tool Inventory spec: an inclusive max-price filter, a case-insensitive size filter that doesn't match by plain substring (so `L` doesn't match `XL`), keyword scoring, and `[]` when nothing matches.
+- *What came back:* A first version that scored keywords and filtered by size, but it checked the requested size against the listing's whole text (title, description, tags) instead of just its `size` field. A size like `L` could therefore match a listing that merely mentioned that word elsewhere. In its first test run, an assertion I had written about which listing ranked first also failed, because I'd guessed the order (`lst_006` first) and the code ranked `lst_002` first on equal keyword scores.
+- *What I changed:* I had the size filter match only against the listing's own `size` field, split into whole tokens, so `M` matches `S/M` and `L` doesn't match `XL`. The ranking failure was my test's assumption, not a bug, so I loosened that check to "both graphic tees are in the results". One weakness remains: because descriptions are searched too, `graphic tee` also returns a mesh top and cargo pants whose descriptions mention a tee. They rank below the real graphic tees.
 
-**Moment 1**
+**Moment 2 — `suggest_outfit`**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
-
-**Moment 2**
-
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I asked the AI to implement `suggest_outfit` so it names pieces from the user's wardrobe when there is one, and gives general styling advice, without pretending the user owns anything, when `wardrobe["items"]` is empty.
+- *What came back:* A function with two prompts, one for each case. The wardrobe prompt lists each piece's name, category, colors, style and notes and tells the model not to claim the user owns anything that isn't listed. The empty-wardrobe prompt tells the model not to imply specific owned pieces. It also raises an error if the model returns blank text, instead of returning `""`.
+- *What I changed:* My first mocked test failed on an assertion that checked for lowercase text ("do not claim…") against a prompt that capitalizes it ("Do not claim…"). I corrected the test, not the function, then re-ran both paths successfully. I also confirmed with a real model call that the outfit it returns names real wardrobe pieces (baggy dark-wash jeans, chunky white sneakers, black denim jacket) rather than invented ones.
 
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
