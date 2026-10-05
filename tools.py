@@ -20,7 +20,9 @@ That last line is what your loop branches on. "Returns a list" earns nothing —
 the description has to say what is *in* the list.
 """
 
-import config  # noqa: F401 — you'll use this in search_listings
+import re
+
+import config
 from generate import generate
 from utils.data_loader import load_listings
 
@@ -43,7 +45,8 @@ def search_listings(
         description: keywords describing what the user wants
                      (e.g. "vintage graphic tee").
         size:        a size string to filter by, or None to skip size filtering.
-                     Match case-insensitively — "M" should match "S/M".
+                     Match case-insensitively at a whole-token boundary —
+                     "M" matches "S/M", but "L" does not match "XL".
 
                      ⚠️ Read the sizes in the data before you reach for a plain
                      substring test. `"s" in "us 9"` is True, and so is
@@ -70,7 +73,7 @@ def search_listings(
     TODO:
         1. Load every listing with load_listings().
         2. Filter by max_price and by size, when each is provided.
-        3. Score what's left by keyword overlap with `description`.
+        3. Score what's left by keyword overlap across listing text and tags.
         4. Drop anything scoring zero.
         5. Sort by score, highest first, and return the listing dicts —
            at most config.SEARCH_RESULT_LIMIT of them.
@@ -78,8 +81,45 @@ def search_listings(
     Test it from a terminal before you move on:
         python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
     """
-    # TODO: replace this with your implementation
-    return []
+    def words(value: str) -> list[str]:
+        return re.findall(r"[a-z0-9]+", value.casefold())
+
+    query_words = set(words(description))
+    requested_size = words(size) if size else []
+    scored_listings = []
+
+    for listing in load_listings():
+        if max_price is not None and listing["price"] > max_price:
+            continue
+
+        listing_size_words = words(str(listing.get("size", "")))
+        listing_words = words(" ".join(
+            str(value)
+            for value in (
+                listing.get("title", ""),
+                listing.get("description", ""),
+                listing.get("category", ""),
+                " ".join(listing.get("style_tags", [])),
+                " ".join(listing.get("colors", [])),
+                listing.get("brand") or "",
+            )
+        ))
+
+        if requested_size and not any(
+            listing_size_words[index:index + len(requested_size)] == requested_size
+            for index in range(len(listing_size_words) - len(requested_size) + 1)
+        ):
+            continue
+
+        score = len(query_words.intersection(listing_words))
+        if score:
+            scored_listings.append((score, listing))
+
+    scored_listings.sort(key=lambda result: result[0], reverse=True)
+    return [
+        listing
+        for _, listing in scored_listings[:config.SEARCH_RESULT_LIMIT]
+    ]
 
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
@@ -112,8 +152,58 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
     """
-    # TODO: replace this with your implementation
-    return ""
+    wardrobe_items = wardrobe.get("items", [])
+    item_details = "\n".join(
+        f"- {label}: {value}"
+        for label, value in (
+            ("Name", new_item.get("title", "Unspecified item")),
+            ("Description", new_item.get("description", "")),
+            ("Category", new_item.get("category", "")),
+            ("Size", new_item.get("size", "")),
+            ("Condition", new_item.get("condition", "")),
+            ("Colors", ", ".join(new_item.get("colors", []))),
+            ("Style tags", ", ".join(new_item.get("style_tags", []))),
+        )
+        if value
+    )
+
+    if wardrobe_items:
+        wardrobe_details = "\n".join(
+            f"- {item.get('name', 'Unnamed item')} "
+            f"(category: {item.get('category', 'unspecified')}; "
+            f"colors: {', '.join(item.get('colors') or []) or 'unspecified'}; "
+            f"style: {', '.join(item.get('style_tags') or []) or 'unspecified'}"
+            f"{'; notes: ' + str(item['notes']) if item.get('notes') else ''})"
+            for item in wardrobe_items
+        )
+        prompt = (
+            f"Suggest one or two wearable outfits featuring this thrift find.\n\n"
+            f"New item:\n{item_details}\n\n"
+            f"The user's wardrobe:\n{wardrobe_details}\n\n"
+            "Use specific pieces from the wardrobe and name them as listed. "
+            "Do not claim the user owns anything not in the wardrobe. "
+            "Briefly explain how the pieces work together."
+        )
+        system = (
+            "You are a practical personal stylist. Make suggestions specific "
+            "to the item and the provided wardrobe."
+        )
+    else:
+        prompt = (
+            f"Give one or two general outfit ideas for styling this thrift find. "
+            "The user has not provided a wardrobe, so do not imply they own "
+            "specific pieces. Suggest versatile kinds of items they could pair "
+            f"with it.\n\nNew item:\n{item_details}"
+        )
+        system = (
+            "You are a practical personal stylist. Give concise, specific "
+            "styling advice without assuming what the user owns."
+        )
+
+    suggestion = generate(prompt, system=system)
+    if not suggestion.strip():
+        raise RuntimeError("The model returned an empty outfit suggestion.")
+    return suggestion
 
 
 # ── Tool 3: create_fit_card ───────────────────────────────────────────────────
@@ -152,5 +242,44 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
     """
-    # TODO: replace this with your implementation
-    return ""
+    if not outfit.strip():
+        title = new_item.get("title") or "This thrift find"
+        price = new_item.get("price")
+        platform = new_item.get("platform")
+        details = []
+        if price is not None:
+            details.append(f"${price}")
+        if platform:
+            details.append(f"on {platform}")
+        suffix = f" ({' '.join(details)})" if details else ""
+        return f"{title}{suffix} is ready for its next great outfit."
+
+    item_details = "\n".join(
+        f"- {label}: {value}"
+        for label, value in (
+            ("Title", new_item.get("title", "")),
+            ("Description", new_item.get("description", "")),
+            ("Category", new_item.get("category", "")),
+            ("Price", f"${new_item['price']}" if new_item.get("price") is not None else ""),
+            ("Platform", new_item.get("platform", "")),
+            ("Colors", ", ".join(new_item.get("colors", []))),
+            ("Style tags", ", ".join(new_item.get("style_tags", []))),
+        )
+        if value
+    )
+    prompt = (
+        "Write a natural, social-media-style fit-card caption in 2-4 sentences. "
+        "Make the vibe specific to the item and outfit, not a generic product "
+        "description. Mention the item's exact title, price, and platform "
+        "exactly once each. Do not invent item details.\n\n"
+        f"Item:\n{item_details}\n\n"
+        f"Suggested outfit:\n{outfit.strip()}"
+    )
+    system = (
+        "You write concise, authentic thrift-fashion captions. Follow the "
+        "requested sentence count and include the required item details."
+    )
+    caption = generate(prompt, system=system)
+    if not caption.strip():
+        raise RuntimeError("The model returned an empty fit-card caption.")
+    return caption
