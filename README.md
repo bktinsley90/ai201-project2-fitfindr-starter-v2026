@@ -23,8 +23,6 @@
 
 ## What This Does
 
-<!-- Three or four sentences: what a user asks for, and what they get back. -->
-
 FitFindr is a thrift-shopping agent. A user types what they want in plain language, such as "vintage graphic tee under $30, size L", and the agent finds a matching secondhand listing. It then suggests outfits that pair the find with pieces from the user's own wardrobe and writes a short, shareable fit-card caption for it. If nothing matches, the agent stops and tells the user what to change, such as the keywords, price limit or size, instead of guessing.
 
 
@@ -69,11 +67,6 @@ FitFindr is a thrift-shopping agent. A user types what they want in plain langua
 ---
 
 ## Sample Run
-
-<!-- Two things go here.
-
-     1. One FULL query and its output, pasted as text.
-     2. Your three per-tool terminal tests — the command and what it printed. -->
 
 **One full query**
 
