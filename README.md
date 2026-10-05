@@ -101,9 +101,63 @@
 
 **One full query**
 
-```
-$ python app.py ask '...'
+Happy path — the session printed at the end of `run_agent`:
 
+```
+$ python -c "import json, agent; from utils.data_loader import get_example_wardrobe; print(json.dumps(agent.run_agent('vintage graphic tee under $30, size L', get_example_wardrobe()), indent=2))"
+{
+  "query": "vintage graphic tee under $30, size L",
+  "parsed": {
+    "description": "vintage graphic tee",
+    "size": "L",
+    "max_price": 30.0
+  },
+  "selected_item": {
+    "id": "lst_006",
+    "title": "Graphic Tee — 2003 Tour Bootleg Style",
+    "description": "Vintage-style bootleg tee with faded graphic. Slightly boxy fit. 100% cotton, soft and worn-in.",
+    "category": "tops",
+    "style_tags": [
+      "graphic tee",
+      "vintage",
+      "grunge",
+      "streetwear",
+      "band tee"
+    ],
+    "size": "L",
+    "condition": "good",
+    "price": 24.0,
+    "colors": [
+      "black"
+    ],
+    "brand": null,
+    "platform": "depop"
+  },
+  "outfit_suggestion": "Here are two wearable outfits featuring your new Graphic Tee, built entirely from items in your wardrobe:\n\n### Outfit 1: Streetwear Edge\n* **Top:** Graphic Tee — 2003 Tour Bootleg Style\n* **Bottoms:** Baggy straight-leg jeans, dark wash\n* **Outerwear:** Vintage black denim jacket\n* **Shoes:** Chunky white sneakers\n* **Accessories:** Black crossbody bag\n\n**Why it works:** \nThe boxy fit of the graphic tee pairs naturally with the relaxed, high-waisted silhouette of the baggy dark wash jeans for an effortless 90s streetwear look. Layering the slightly cropped vintage black denim jacket on top adds texture and dimension while keeping the color palette grounded in black and indigo. Finishing with chunky white sneakers ties the streetwear vibe together and adds a sharp contrast to the dark tones.\n\n### Outfit 2: Grungy Contrast\n* **Top:** Graphic Tee — 2003 Tour Bootleg Style\n* **Bottoms:** Wide-leg khaki trousers\n* **Outerwear:** Black cropped zip hoodie (worn open or layered)\n* **Shoes:** Black combat boots\n* **Accessories:** Brown leather belt, Black crossbody bag\n\n**Why it works:**\nThis look plays on a high-low mix of grunge and minimal styles. Tucking the graphic tee into the wide-leg khaki trousers (accented with the brown leather belt) creates a balanced silhouette that contrasts the tee's vintage edge with clean earth tones. Adding the black combat boots leans into the grunge aesthetic of the shirt, while the black crossbody bag keeps the accessories minimal and functional.",
+  "fit_card": "Channeling major 90s streetwear energy with this slightly boxy Graphic Tee — 2003 Tour Bootleg Style, paired with dark baggy denim and fresh white kicks. The super soft, worn-in cotton makes it an effortless daily grab for layering under your favorite black denim jacket. Snag this piece right now over on depop for just $24.0 before someone else beats you to it!",
+  "error": null,
+  "search_results": [
+    "lst_006",
+    "lst_033",
+    "lst_015"
+  ],
+  "wardrobe": "10 items"
+}
+
+selected_item id: lst_006
+item received by suggest_outfit id: lst_006  → same listing
+```
+
+Empty path — a query nothing matches:
+
+```
+$ python -c "import agent; from utils.data_loader import get_example_wardrobe; s = agent.run_agent('designer ballgown size XXS under $5', get_example_wardrobe()); print(s['parsed'], s['search_results'], s['fit_card'], s['error'], sep='\n')"
+{'description': 'designer ballgown', 'size': 'XXS', 'max_price': 5.0}
+[]
+None
+No listings matched "designer ballgown". You could try fewer or different keywords, raise your $5 price limit, drop or change size XXS.
+
+suggest_outfit called: no
 ```
 
 **The three tools, tested one at a time**

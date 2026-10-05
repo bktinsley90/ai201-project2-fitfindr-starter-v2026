@@ -13,6 +13,8 @@ Build and test your three tools in `tools.py` first. Then come here.
     python agent.py          runs both example paths below
 """
 
+import re
+
 import config
 import trace
 from tools import search_listings, suggest_outfit, create_fit_card
@@ -106,10 +108,80 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         than a stack trace. The import is already at the top of this file.
     """
     session = new_session(query, wardrobe)
+    iterations = 0
 
-    # TODO: delete these two lines and build the loop.
-    session["error"] = "The planning loop isn't built yet — see the TODO in agent.py."
+    try:
+        iterations += 1
+        trace.check_iterations(iterations)
+
+        session["parsed"] = _parse_query(query)
+        parsed = session["parsed"]
+
+        session["search_results"] = search_listings(
+            parsed["description"], parsed["size"], parsed["max_price"]
+        )
+
+        # The branch: nothing found means we stop before the model-backed tools.
+        if not session["search_results"]:
+            session["error"] = _no_results_message(parsed)
+            return session
+
+        session["selected_item"] = session["search_results"][0]
+
+        session["outfit_suggestion"] = suggest_outfit(
+            session["selected_item"], session["wardrobe"]
+        )
+        session["fit_card"] = create_fit_card(
+            session["outfit_suggestion"], session["selected_item"]
+        )
+    except ModelUnavailable as exc:
+        session["error"] = (
+            "The styling model could not be reached, so FitFindr could not "
+            f"finish this request. Check your API key and connection, then try again. ({exc})"
+        )
+
     return session
+
+
+_FILLER_WORDS = {
+    "a", "an", "the", "for", "in", "on", "of", "to", "and", "or", "with",
+    "i", "im", "i'm", "me", "my", "looking", "want", "need", "find", "show",
+    "something", "some", "please", "like", "any",
+}
+
+
+def _parse_query(query: str) -> dict:
+    """Pull a size and inclusive max price out of the query with regexes."""
+    text = query.strip()
+    size = None
+    max_price = None
+
+    size_match = re.search(r"\bsize\s*:?\s*([A-Za-z0-9/]+)", text, re.IGNORECASE)
+    if size_match:
+        size = size_match.group(1).upper()
+        text = text.replace(size_match.group(0), " ")
+
+    price_match = re.search(
+        r"(?:\b(?:under|below|less than|up to|max(?:imum)?|at most|no more than)\s*|<=?\s*)\$?\s*(\d+(?:\.\d+)?)"
+        r"|\$\s*(\d+(?:\.\d+)?)",
+        text,
+        re.IGNORECASE,
+    )
+    if price_match:
+        max_price = float(price_match.group(1) or price_match.group(2))
+        text = text.replace(price_match.group(0), " ")
+
+    words = [w for w in re.findall(r"[A-Za-z0-9']+", text) if w.lower() not in _FILLER_WORDS]
+    return {"description": " ".join(words), "size": size, "max_price": max_price}
+
+
+def _no_results_message(parsed: dict) -> str:
+    hints = ["try fewer or different keywords"]
+    if parsed["max_price"] is not None:
+        hints.append(f"raise your ${parsed['max_price']:g} price limit")
+    if parsed["size"]:
+        hints.append(f"drop or change size {parsed['size']}")
+    return f"No listings matched \"{parsed['description']}\". You could " + ", ".join(hints) + "."
 
 
 # ── running it directly ───────────────────────────────────────────────────────
