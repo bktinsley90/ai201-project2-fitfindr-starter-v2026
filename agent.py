@@ -19,7 +19,7 @@ import config
 import trace
 from tools import search_listings, suggest_outfit, create_fit_card
 from generate import ModelUnavailable
-
+from mcp_client import call_tool
 
 # ── session state ─────────────────────────────────────────────────────────────
 
@@ -78,7 +78,7 @@ def run_agent(query: str, wardrobe: dict) -> dict:
          string splitting, or asking the model are all fine — say which you
          chose in your README. Put the result in session["parsed"].
 
-      4. Call search_listings() with what you parsed.
+      4. Call the search_listings tool via call_tool() with what you parsed.
          Put the results in session["search_results"].
 
          ⚠️ THIS IS THE BRANCH. If nothing came back:
@@ -117,8 +117,13 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         session["parsed"] = _parse_query(query)
         parsed = session["parsed"]
 
-        session["search_results"] = search_listings(
-            parsed["description"], parsed["size"], parsed["max_price"]
+        session["search_results"] = call_tool(
+            "search_listings",
+            {
+                "description": parsed["description"],
+                "size": parsed["size"],
+                "max_price": parsed["max_price"],
+            },
         )
 
         # The branch: nothing found means we stop before the model-backed tools.
