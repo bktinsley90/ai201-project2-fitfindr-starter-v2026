@@ -167,37 +167,33 @@ Nothing beats the lived-in look of these Vintage Levi's 501 Jeans — Medium Was
 - *What came back:* A function with two prompts, one for each case. The wardrobe prompt lists each piece's name, category, colors, style and notes and tells the model not to claim the user owns anything that isn't listed. The empty-wardrobe prompt tells the model not to imply specific owned pieces. It also raises an error if the model returns blank text, instead of returning `""`.
 - *What I changed:* My first mocked test failed on an assertion that checked for lowercase text ("do not claim…") against a prompt that capitalizes it ("Do not claim…"). I corrected the test, not the function, then re-ran both paths successfully. I also confirmed with a real model call that the outfit it returns names real wardrobe pieces (baggy dark-wash jeans, chunky white sneakers, black denim jacket) rather than invented ones.
 
-<!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
-
-     Don't fill these in during unit 3.
-     ═══════════════════════════════════════════════════════════════════ -->
-
 ---
 
 ## Run Log — Before
 
-<!-- Five criteria, five tries each, in this exact format.
-
-     Five, because your criteria are written out of five. Mark each try PASS
-     or FAIL, count the passes, and read that count against your target — a
-     row targeting 4 of 5 with three PASS cells is MISSED (3/5).
-
-     `python run_eval.py --label before` runs everything and writes the table
-     into results/. Paste it here and fill in the verdicts. -->
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. Full three-tool run returns a fit card | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. Impossible query stops before `suggest_outfit` | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. Selected item reaches the outfit tool unchanged | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. Fit cards contain required details (5 different listings) | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Unavailable model returns an error message | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 
-**Real output from one try**, pasted as text, naming the file and function
-that produced it:
+How each was scored (log: `results/run_2026-10-11_2104_before.md`, caching off):
+
+- **1:** all five tries reached `create_fit_card` and returned a non-empty card.
+- **2:** all five tries stopped after search with the "No listings matched" message and made no model calls.
+- **3:** the log doesn't record the ID passed to `suggest_outfit`, so I checked it separately with the model tools stubbed: `session["selected_item"]["id"]` matched the received `new_item["id"]` (`lst_007`) in 5 of 5 runs.
+- **4:** Try N is listing N (graphic tee, track jacket, slip dress, platform sneakers, cardigan), scored on that listing's first card for 2-4 sentences plus title, price and platform. Across all 25 cards from the five-try runs, 24 passed. The one miss was a slip dress card that did not use the exact listing title.
+- **5:** `generate` was made to raise `ModelUnavailable`; all five tries returned the "styling model could not be reached" error with no crash.
+
+**Real output from one try**
+
+Fit card for "vintage graphic tee under $30", try 1 of the "matching query completes" scenario in `results/run_2026-10-11_2104_before.md`. It was produced by `create_fit_card` in `tools.py`, called from `run_agent` in `agent.py`:
 
 ```
-
+Channeling ultimate 2000s energy with this Y2K Baby Tee — Butterfly Print, styled here with baggy denim and chunky sneakers for the perfect proportions. Grab this pastel graphic top for just $18.0 over on depop before it's gone!
 ```
 
 ---
@@ -310,11 +306,19 @@ python app.py ask "designer ballgown size XXS under $5" --trace
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. Full three-tool run returns a fit card | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. Impossible query stops before `suggest_outfit` | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. Selected item reaches the outfit tool unchanged | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. Fit cards contain required details (5 different listings) | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Unavailable model returns an error message | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+
+How each was scored (log: `results/run_2026-10-11_2104_before.md`, caching off):
+
+- **1:** all five tries reached `create_fit_card` and returned a non-empty card.
+- **2:** all five tries stopped after search with the "No listings matched" message and made no model calls.
+- **3:** the log doesn't record the ID passed to `suggest_outfit`, so I checked it separately with the model tools stubbed: `session["selected_item"]["id"]` matched the received `new_item["id"]` (`lst_007`) in 5 of 5 runs.
+- **4:** Try N is listing N (graphic tee, track jacket, slip dress, platform sneakers, cardigan), scored on that listing's first card for 2-4 sentences plus title, price and platform. Across all 25 cards from the five-try runs, 24 passed. The one miss was a slip dress card that did not use the exact listing title.
+- **5:** `generate` was made to raise `ModelUnavailable`; all five tries returned the "styling model could not be reached" error with no crash.
 
 **Did it help, and how do I know:**
 

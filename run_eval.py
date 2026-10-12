@@ -51,11 +51,28 @@ def run_once(scenario, use_trace=True):
         trace_module.start_trace()
 
     record = {"error": None, "session": None, "trace": "", "crashed": None}
+
+    restore = None
+    if scenario.get("fail_model"):
+        import tools
+        from generate import ModelUnavailable
+
+        original = tools.generate
+
+        def _unavailable(*args, **kwargs):
+            raise ModelUnavailable("simulated failure")
+
+        tools.generate = _unavailable
+        restore = lambda: setattr(tools, "generate", original)  # noqa: E731
+
     try:
         record["session"] = run_agent(scenario["query"], wardrobe)
     except Exception as exc:  # noqa: BLE001 — a crash is a result worth logging
         record["crashed"] = f"{type(exc).__name__}: {exc}"
         record["traceback"] = traceback.format_exc()
+    finally:
+        if restore:
+            restore()
 
     if use_trace:
         record["trace"] = trace_module.get_trace()

@@ -35,18 +35,55 @@ SCENARIOS = [
         "wardrobe": "empty",
         "criterion": None,
     },
-    # TODO: add what your criteria 3, 4 and 5 need.
-    #
-    # Set "criterion" to the number in criteria.md that the scenario tests.
-    # "criterion": None means a diagnostic run — useful to have, but it isn't
-    # one of your five, and run_eval.py marks it as such in the table.
-    #
-    # For a state criterion, any normal query works — what you're checking is
-    # what ends up in the session, not what the user typed.
-    #
-    # For a fit-card criterion, you probably want the SAME query listed more
-    # than once, or several different items, depending on what your criterion
-    # actually says.
+    {
+        # Criterion 3: a normal query; the check is selected_item["id"] vs
+        # the new_item["id"] suggest_outfit received.
+        "name": "selected item reaches outfit tool",
+        "query": "denim jacket under $50",
+        "wardrobe": "example",
+        "criterion": 3,
+    },
+    # Criterion 4: five different listings, one scenario each, so every try
+    # of a scenario runs the same item and the fit card can be checked
+    # against that listing's title, price and platform.
+    {
+        "name": "fit card: graphic tee",
+        "query": "vintage graphic tee under $30",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
+    {
+        "name": "fit card: track jacket",
+        "query": "90s track jacket in size M",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
+    {
+        "name": "fit card: slip dress",
+        "query": "silk slip dress in midi length under $40",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
+    {
+        "name": "fit card: platform sneakers",
+        "query": "platform sneakers size 8",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
+    {
+        "name": "fit card: cardigan",
+        "query": "knit cardigan under $40",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
+    {
+        # Criterion 5: run_eval.py makes generate() raise ModelUnavailable.
+        "name": "model unavailable is handled",
+        "query": "denim jacket under $50",
+        "wardrobe": "example",
+        "criterion": 5,
+        "fail_model": True,
+    },
 ]
 
 WARDROBES = ("example", "empty")
