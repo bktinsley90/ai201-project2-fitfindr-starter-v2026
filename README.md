@@ -282,16 +282,14 @@ python app.py ask "designer ballgown size XXS under $5" --trace
 
 ## The Improvement
 
-<!-- What you changed, why your diagnosis pointed at it, and the after-run in
-     the same table format. One change, measured properly.
 
-     `python run_eval.py --label after` -->
+**What I changed:** I rewrote the prompt in `create_fit_card` in `tools.py`. The old prompt said "Mention the item's exact title, price, and platform exactly once each. Do not invent item details." The new one says to copy the full title word for word, including everything after any dash, and not to shorten or paraphrase it. It also says not to write as if the model bought, owned or inspected the item (no "I thrifted" or "I scored"). Nothing else changed: no tool, loop or branch code.
 
-**What I changed:**
-
-**Which failure it was meant to fix:**
+**Which failure it was meant to fix:** the model-output near-miss from my diagnosis. One slip-dress card shortened "90s Silk Slip Dress — Floral, Midi Length" to "90s Silk Slip Dress", and the original prompt only said "exact title", which the model read loosely. The same prompt also let the model invent first-person details in 3 of 25 cards ("I thrifted…", "a tiny invisible snag"), so I closed that off in the same edit.
 
 ### Run Log — After
+
+`python run_eval.py --label after` → `results/run_2026-10-12_1941_after.md`, caching off.
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
@@ -301,28 +299,19 @@ python app.py ask "designer ballgown size XXS under $5" --trace
 | 4. Fit cards contain required details (5 different listings) | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 | 5. Unavailable model returns an error message | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 
-How each was scored (log: `results/run_2026-10-11_2104_before.md`, caching off):
+How each was scored:
 
-- **1:** all five tries reached `create_fit_card` and returned a non-empty card.
-- **2:** all five tries stopped after search with the "No listings matched" message and made no model calls.
-- **3:** the log doesn't record the ID passed to `suggest_outfit`, so I checked it separately with the model tools stubbed: `session["selected_item"]["id"]` matched the received `new_item["id"]` (`lst_007`) in 5 of 5 runs.
-- **4:** Try N is listing N (graphic tee, track jacket, slip dress, platform sneakers, cardigan), scored on that listing's first card for 2-4 sentences plus title, price and platform. Across all 25 cards from the five-try runs, 24 passed. The one miss was a slip dress card that did not use the exact listing title.
-- **5:** `generate` was made to raise `ModelUnavailable`; all five tries returned the "styling model could not be reached" error with no crash.
+- **1, 2, 5:** same as the before run. All five tries of the matching query completed, all five impossible queries stopped after search, and all five simulated model failures returned the readable error.
+- **3:** the loop code is unchanged and all five tries completed. I did not repeat the stubbed ID check, since the prompt change doesn't touch it.
+- **4:** all five listings passed. Across the five-try runs, 25 of 25 cards were 2-4 sentences with the exact title, price and platform. Four of the 25 tries first hit a real `503 UNAVAILABLE` from the model service ("high demand"). I re-ran those four, and all four cards passed. The agent handled the 503s with the same readable error it uses for criterion 5.
 
-**Did it help, and how do I know:**
-
-<!-- If it made things worse, say that. Honestly reported, that earns full
-     credit and is more interesting than one that worked. -->
+**Did it help, and how do I know:** Yes, modestly. The before run scored 24 of 25 cards on criterion 4, with the one miss a shortened slip-dress title. The after run scored 25 of 25, and no card dropped part of a title. First-person invented details fell from 3 of 25 cards to 0. Every criterion was already met before, so no verdict changed. This is a quality gain inside targets that were already met, not a rescued criterion. With one miss in 25 before, I can't prove the prompt caused the improvement. The title result is within normal variation, though the first-person change is more convincing, since the prompt now forbids it directly. The 503s were an outside outage, unrelated to my change.
 
 
 
 ---
 
 ## What's Still Broken
-
-<!-- For each criterion still missed: what you'd do, and why you stopped where
-     you did. "I ran out of time" is fine if it's true. Pretending nothing is
-     left is not. -->
 
 
 

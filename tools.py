@@ -270,8 +270,11 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     prompt = (
         "Write a natural, social-media-style fit-card caption in 2-4 sentences. "
         "Make the vibe specific to the item and outfit, not a generic product "
-        "description. Mention the item's exact title, price, and platform "
-        "exactly once each. Do not invent item details.\n\n"
+        "description. Copy the item's full title word for word, including "
+        "everything after any dash, and state the price and platform once "
+        "each. Do not shorten or paraphrase the title. Do not invent item "
+        "details, and do not write as if you bought, owned or inspected the "
+        "item (no \"I thrifted\" or \"I scored\").\n\n"
         f"Item:\n{item_details}\n\n"
         f"Suggested outfit:\n{outfit.strip()}"
     )
