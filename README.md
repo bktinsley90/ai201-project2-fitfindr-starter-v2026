@@ -200,33 +200,22 @@ Channeling ultimate 2000s energy with this Y2K Baby Tee — Butterfly Print, sty
  
 ## Verdicts and Diagnoses
 
-<!-- MET or MISSED per criterion against LAST UNIT's target, plus a sentence on
-     how you decided.
-
-     Then, for every miss: which of the four places it happened — a tool, the
-     loop's branch, the session, or the model's output — AND the mechanism.
-
-     Not a diagnosis:  "The fit card was bad."
-     A diagnosis:      "The fit card criterion missed on 2 of 5 items. Both had
-                        an empty brand field. My prompt puts the brand in the
-                        first sentence, so the card opened with a blank and read
-                        like a fragment. The tool worked; the prompt assumed a
-                        field that isn't always there."
-
-     Look for a pattern. Three misses on the same tool is one problem, not
-     three. -->
-
 | # | Criterion | Target | Verdict | How I decided |
 |---|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
+| 1 | A matching query completes all three tools | 4 of 5 | MET | 5/5 tries reached `create_fit_card` and returned a card. |
+| 2 | An impossible query stops before the second tool | 5 of 5 | MET | 5/5 tries stopped after `search_listings` with the "No listings matched" message and made no model calls. |
+| 3 | The selected item reaches the outfit tool unchanged | 5 of 5 | MET | `selected_item["id"]` equalled the `new_item["id"]` received by `suggest_outfit` (`lst_007`) in 5/5 runs, checked with the model tools stubbed. |
+| 4 | Fit cards contain the required details | 4 of 5 | MET | The target counts five different listings, and every one of the five listings' cards passed (graphic tee, track jacket, slip dress, platform sneakers, cardigan). Across all 25 cards, 24 passed. |
+| 5 | The agent handles an unavailable model | 5 of 5 | MET | With `generate` raising `ModelUnavailable`, 5/5 tries returned the "styling model could not be reached" error and no traceback. |
 
 **Diagnoses**
 
+No criterion missed its target, so there is nothing to diagnose against a target. There was one near-miss worth recording. On the slip dress (criterion 4), one of the five tries produced a card that left out the full listing title.
 
+- **Where:** the model's output, in `create_fit_card` in `tools.py`.
+- **Mechanism:** the card said "this 90s Silk Slip Dress" and dropped "— Floral, Midi Length". The price and platform were present and it was 3 sentences, so it only failed my strict "mentions the title" check. The tool and the loop worked; the model shortened a long title the way a person writing a caption would. The prompt asks for the title but doesn't require it verbatim.
+- **Pattern:** it was the only miss in 25 cards, and the slip dress has the longest title of the five. Other cards sometimes wrote the price as `$30.0` instead of `$30`, which comes from the raw float in the listing data and passes the check.
+- **Not caught by the criteria:** the model also invented first-person details in some cards ("I thrifted…", "a tiny invisible snag"). The cards were all the right length and had the right fields, so criterion 4 doesn't score this.
 
 ---
 
