@@ -109,6 +109,7 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     """
     session = new_session(query, wardrobe)
     iterations = 0
+    trace.start_trace()
 
     try:
         iterations += 1
@@ -116,6 +117,7 @@ def run_agent(query: str, wardrobe: dict) -> dict:
 
         session["parsed"] = _parse_query(query)
         parsed = session["parsed"]
+        trace.step("parse_query", inputs=query, returned=parsed)
 
         session["search_results"] = call_tool(
             "search_listings",
@@ -125,10 +127,20 @@ def run_agent(query: str, wardrobe: dict) -> dict:
                 "max_price": parsed["max_price"],
             },
         )
+        trace.step(
+            "search_listings (via MCP)",
+            inputs={
+                "description": parsed["description"],
+                "size": parsed["size"],
+                "max_price": parsed["max_price"],
+            },
+            returned=session["search_results"],
+        )
 
         # The branch: nothing found means we stop before the model-backed tools.
         if not session["search_results"]:
             session["error"] = _no_results_message(parsed)
+            trace.step("stop", note="branch: no results, skipping model-backed tools")
             return session
 
         session["selected_item"] = session["search_results"][0]
@@ -136,14 +148,25 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         session["outfit_suggestion"] = suggest_outfit(
             session["selected_item"], session["wardrobe"]
         )
+        trace.step(
+            "suggest_outfit",
+            inputs=session["selected_item"],
+            returned=session["outfit_suggestion"],
+        )
         session["fit_card"] = create_fit_card(
             session["outfit_suggestion"], session["selected_item"]
+        )
+        trace.step(
+            "create_fit_card",
+            inputs=session["outfit_suggestion"],
+            returned=session["fit_card"],
         )
     except ModelUnavailable as exc:
         session["error"] = (
             "The styling model could not be reached, so FitFindr could not "
             f"finish this request. Check your API key and connection, then try again. ({exc})"
         )
+        trace.step("model unavailable", note="stopping; error recorded in session")
 
     return session
 

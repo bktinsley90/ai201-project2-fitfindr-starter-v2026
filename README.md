@@ -201,7 +201,7 @@ that produced it:
 ```
 
 ---
-
+ 
 ## Verdicts and Diagnoses
 
 <!-- MET or MISSED per criterion against LAST UNIT's target, plus a sentence on
@@ -236,34 +236,62 @@ that produced it:
 
 ## Loop Trace
 
-<!-- One full run, printed step by step, with the MCP call visible in it.
-
-     `python app.py ask '...' --trace` once you've added the trace.step()
-     calls in Milestone 2.
-
-     Worth pasting BOTH the happy path and the empty-search path. The empty
-     one should be visibly shorter, because it stops. If your two traces are
-     the same length, your branch isn't working — and this is the fastest way
-     anyone will ever find that out. -->
-
 **Happy path**
 
 ```
+python app.py ask "denim jacket under $50" --trace
+[1] parse_query
+      in:  denim jacket under 
+      out: dict with keys: description, size, max_price
+[2] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: 9 items: Denim Jacket — Light Wash, Cropped, Vintage Levi's 501 Jeans — Medium Wash, 90s Track Jacket — Navy/White Stripe … +6 more
+[3] suggest_outfit
+      in:  Denim Jacket — Light Wash, Cropped ($42.0, poshmark)
+      out: Here is a wearable outfit featuring your new light wash cropped denim jacket, pulled straight from your wardro…
+[4] create_fit_card
+      in:  Here is a wearable outfit featuring your new light wash cropped denim jacket, pulled straight from your wardro…
+      out: Leaning into the double-denim trend today with this structured Denim Jacket — Light Wash, Cropped. The contras…
 
+  Found:    Denim Jacket — Light Wash, Cropped — $42.0 on poshmark
+
+  Outfit:   Here is a wearable outfit featuring your new light wash cropped denim jacket, pulled straight from your wardrobe:
+
+### Outfit: Double Denim Streetwear
+
+* **New Item:** Denim Jacket — Light Wash, Cropped
+* **Top:** White ribbed tank top
+* **Bottoms:** Baggy straight-leg jeans, dark wash
+* **Shoes:** Chunky white sneakers
+* **Accessories:** Black crossbody bag
+
+**Why it works:**
+This look plays on the classic Canadian tuxedo (denim-on-denim) with a modern streetwear edge. Because your new light wash jacket is cropped and your dark wash jeans are high-waisted, the proportions naturally accentuate your waist without needing a belt. Layering the fitted **White ribbed tank top** underneath creates a nice contrast in textures and silhouette against the structured, baggy denim pieces. Finally, the **Chunky white sneakers** tie in the brightness of the tank top, while the **Black crossbody bag** adds a sleek, minimal finish to the outfit.
+
+  Fit card: Leaning into the double-denim trend today with this structured Denim Jacket — Light Wash, Cropped. The contrast against dark baggy jeans and a white ribbed tank hits that perfect streetwear sweet spot. Grab this versatile layering piece on Poshmark for just $42.0.
+
+0 model calls this session, 2 served from cache
 ```
 
 **Empty search**
 
 ```
+python app.py ask "designer ballgown size XXS under $5" --trace
+[1] parse_query
+      in:  designer ballgown size XXS under $5
+      out: dict with keys: description, size, max_price
+[2] search_listings (via MCP)
+      in:  dict with keys: description, size, max_price
+      out: [] (empty)
+[3] stop
+      →    branch: no results, skipping model-backed tools
 
+  No listings matched "designer ballgown". You could try fewer or different keywords, raise your $5 price limit, drop or change size XXS.
+
+0 model calls this session
 ```
 
-**On the MCP move:** <!-- what changed in your code, and whether anything
-behaved differently afterwards. If the rewire didn't work, say exactly where it
-broke — the error text and the last thing that worked. That earns the point in
-full. -->
-
-
+**On the MCP move:** I moved only `search_listings`. In `mcp_server.py` it is registered as an MCP tool that wraps the existing implementation in `tools.py`, and in `agent.py` the direct call became `call_tool("search_listings", {...})` from `mcp_client.py`. The inputs and the return value kept the same shape: a list of listing dicts, and an empty list when nothing matches. Nothing else in the loop changed, so the branch on empty results works as before. The trace labels the step `search_listings (via MCP)`. The rewire worked first time and I hit no errors. The one visible difference is that each call now starts and stops the server process. `suggest_outfit` and `create_fit_card` stay as direct calls because they call the model.
 
 ---
 
